@@ -1,3 +1,4 @@
+/* eslint-disable no-mixed-spaces-and-tabs */
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import * as React from "react";
 import styles from "./TaskList.module.scss";
@@ -73,12 +74,14 @@ export default class TaskList extends React.Component<
 					</thead>
 
 					<tbody>
-						{this.state.displayedTasks.map((task: Task) => (
-							<tr key={task.id}>
-								<td>{task.title}</td>
-								<td>{task.dueDateTime}</td>
-							</tr>
-						))}
+						{this.state.assignedTasks &&
+							this.state.assignedTasks.map((task: Task) => (
+								<tr key={task.id}>
+									<td>{task.title}</td>
+
+									<td>{task.dueDateTime}</td>
+								</tr>
+							))}
 					</tbody>
 				</table>
 			</section>
@@ -98,11 +101,16 @@ export default class TaskList extends React.Component<
 							const assignedToKeys = Object.keys(
 								task.assignments
 							);
+							const dueDateTime = task.dueDateTime
+								? new Date(
+										task.dueDateTime
+								  ).toLocaleDateString()
+								: "";
 							responseTasks.push({
 								id: task.id,
 								title: task.title,
 								assignedTo: assignedToKeys,
-								dueDateTime: task.dueDateTime,
+								dueDateTime: dueDateTime,
 								bucketId: task.bucketId,
 							});
 						});
