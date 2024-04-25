@@ -12,8 +12,7 @@ import {
 	mergeStyleSets,
 } from "@fluentui/react";
 import { Task } from "../types/Task";
-
-const planId: string = "PLAN_ID";
+import { planId } from "../../../PlanId";
 
 const options: IComboBoxOption[] = [
 	{ key: "1", text: "Option 1" },
@@ -119,9 +118,9 @@ export default class TaskList extends React.Component<
 		option?: IComboBoxOption | undefined,
 		index?: number | undefined
 	): void => {
-		let allTasks: Task[] = this.state.assignedTasks;
+		const allTasks: Task[] = this.state.assignedTasks;
 		let filteredTasks: Task[] = [];
-		let currentOptions = [...this.state.selectedOptions, option];
+		const currentOptions = [...this.state.selectedOptions, option];
 		currentOptions.forEach((option: IComboBoxOption) => {
 			switch (option?.key) {
 				case "1":
@@ -152,7 +151,5 @@ export default class TaskList extends React.Component<
 		});
 
 		this.setState({ displayedTasks: filteredTasks });
-		console.log("filteredTasks", filteredTasks);
-		console.log("displayedTasks", this.state.displayedTasks);
 	};
 }
