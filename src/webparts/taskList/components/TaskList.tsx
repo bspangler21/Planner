@@ -1,43 +1,158 @@
-import * as React from 'react';
-import styles from './TaskList.module.scss';
-import type { ITaskListProps } from './ITaskListProps';
-import { escape } from '@microsoft/sp-lodash-subset';
+/* eslint-disable @typescript-eslint/no-floating-promises */
+import * as React from "react";
+import styles from "./TaskList.module.scss";
+import type { TaskListProps } from "../types/TaskListProps";
+import type { TaskListState } from "../types/TaskListState";
+import { escape } from "@microsoft/sp-lodash-subset";
+import { MSGraphClientV3 } from "@microsoft/sp-http";
+import {
+	ComboBox,
+	IComboBox,
+	IComboBoxOption,
+	mergeStyleSets,
+} from "@fluentui/react";
+import { Task } from "../types/Task";
 
-export default class TaskList extends React.Component<ITaskListProps, {}> {
-  public render(): React.ReactElement<ITaskListProps> {
-    const {
-      description,
-      isDarkTheme,
-      environmentMessage,
-      hasTeamsContext,
-      userDisplayName
-    } = this.props;
+const planId: string = "PLAN_ID";
 
-    return (
-      <section className={`${styles.taskList} ${hasTeamsContext ? styles.teams : ''}`}>
-        <div className={styles.welcome}>
-          <img alt="" src={isDarkTheme ? require('../assets/welcome-dark.png') : require('../assets/welcome-light.png')} className={styles.welcomeImage} />
-          <h2>Well done, {escape(userDisplayName)}!</h2>
-          <div>{environmentMessage}</div>
-          <div>Web part property value: <strong>{escape(description)}</strong></div>
-        </div>
-        <div>
-          <h3>Welcome to SharePoint Framework!</h3>
-          <p>
-            The SharePoint Framework (SPFx) is a extensibility model for Microsoft Viva, Microsoft Teams and SharePoint. It&#39;s the easiest way to extend Microsoft 365 with automatic Single Sign On, automatic hosting and industry standard tooling.
-          </p>
-          <h4>Learn more about SPFx development:</h4>
-          <ul className={styles.links}>
-            <li><a href="https://aka.ms/spfx" target="_blank" rel="noreferrer">SharePoint Framework Overview</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-graph" target="_blank" rel="noreferrer">Use Microsoft Graph in your solution</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-teams" target="_blank" rel="noreferrer">Build for Microsoft Teams using SharePoint Framework</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-viva" target="_blank" rel="noreferrer">Build for Microsoft Viva Connections using SharePoint Framework</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-store" target="_blank" rel="noreferrer">Publish SharePoint Framework applications to the marketplace</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-api" target="_blank" rel="noreferrer">SharePoint Framework API reference</a></li>
-            <li><a href="https://aka.ms/m365pnp" target="_blank" rel="noreferrer">Microsoft 365 Developer Community</a></li>
-          </ul>
-        </div>
-      </section>
-    );
-  }
+const options: IComboBoxOption[] = [
+	{ key: "1", text: "Option 1" },
+	{ key: "2", text: "Option 2" },
+	{ key: "3", text: "Option 3" },
+];
+
+const classNames = mergeStyleSets({
+	header: {
+		width: "300px",
+		fontSize: "20px",
+		fontWeight: "bold",
+	},
+});
+
+export default class TaskList extends React.Component<
+	TaskListProps,
+	TaskListState
+> {
+	constructor(props: TaskListProps, state: TaskListState) {
+		super(props);
+		this.state = {
+			assignedTasks: [],
+			displayedTasks: [],
+			selectedOptions: [],
+		};
+	}
+	public render(): React.ReactElement<TaskListProps> {
+		const {
+			description,
+			isDarkTheme,
+			environmentMessage,
+			hasTeamsContext,
+			userDisplayName,
+		} = this.props;
+
+		return (
+			<section
+				className={`${styles.taskList} ${
+					hasTeamsContext ? styles.teams : ""
+				}`}
+			>
+				<div>
+					<ComboBox
+						label="Filter by team member"
+						options={options}
+						// defaultSelectedKey={"zzz"}
+						multiSelect
+						onItemClick={this._filterTasks}
+					/>
+				</div>
+				<table>
+					<thead>
+						<tr>
+							<th className={classNames.header}>Title</th>
+							<th className={classNames.header}>Due Date</th>
+						</tr>
+					</thead>
+
+					<tbody>
+						{this.state.displayedTasks.map((task: Task) => (
+							<tr key={task.id}>
+								<td>{task.title}</td>
+								<td>{task.dueDateTime}</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</section>
+		);
+	}
+
+	public componentDidMount(): void {
+		this.props.context.msGraphClientFactory
+			.getClient("3")
+			.then((client: MSGraphClientV3) => {
+				client
+					.api(`planner/plans/${planId}/tasks`)
+					.get((_error, tasks: any, rawResponse?: any) => {
+						let responseTasks: Task[] = [];
+
+						tasks.value.map((task: any) => {
+							const assignedToKeys = Object.keys(
+								task.assignments
+							);
+							responseTasks.push({
+								id: task.id,
+								title: task.title,
+								assignedTo: assignedToKeys,
+								dueDateTime: task.dueDateTime,
+								bucketId: task.bucketId,
+							});
+						});
+						this.setState({ assignedTasks: responseTasks });
+					});
+			});
+
+		console.log("assignedTasks", this.state.assignedTasks);
+	}
+
+	private _filterTasks = (
+		event: React.FormEvent<IComboBox>,
+		option?: IComboBoxOption | undefined,
+		index?: number | undefined
+	): void => {
+		let allTasks: Task[] = this.state.assignedTasks;
+		let filteredTasks: Task[] = [];
+		let currentOptions = [...this.state.selectedOptions, option];
+		currentOptions.forEach((option: IComboBoxOption) => {
+			switch (option?.key) {
+				case "1":
+					allTasks.forEach((task: Task) => {
+						if (
+							task.assignedTo &&
+							task.assignedTo.indexOf(option?.key.toString()) > -1
+						) {
+							filteredTasks.push(task);
+						}
+					});
+					break;
+				case "2":
+					allTasks.forEach((task: Task) => {
+						if (
+							task.assignedTo &&
+							task.assignedTo.indexOf(option?.key.toString()) > -1
+						) {
+							filteredTasks.push(task);
+						}
+					});
+					break;
+				default:
+					console.log("No option selected");
+					filteredTasks = allTasks;
+					break;
+			}
+		});
+
+		this.setState({ displayedTasks: filteredTasks });
+		console.log("filteredTasks", filteredTasks);
+		console.log("displayedTasks", this.state.displayedTasks);
+	};
 }
