@@ -22,10 +22,19 @@ const options: IComboBoxOption[] = [
 ];
 
 const classNames = mergeStyleSets({
-	header: {
+	largeHeader: {
+		width: "500px",
+		fontSize: "20px",
+		fontWeight: "bold",
+	},
+	regularHeader: {
 		width: "300px",
 		fontSize: "20px",
 		fontWeight: "bold",
+	},
+	comboBox: {
+		width: "300px",
+		padding: "10px",
 	},
 });
 
@@ -63,13 +72,16 @@ export default class TaskList extends React.Component<
 						// defaultSelectedKey={"zzz"}
 						multiSelect
 						onItemClick={this._filterTasks}
+						className={classNames.comboBox}
 					/>
 				</div>
 				<table>
 					<thead>
 						<tr>
-							<th className={classNames.header}>Title</th>
-							<th className={classNames.header}>Due Date</th>
+							<th className={classNames.largeHeader}>Title</th>
+							<th className={classNames.regularHeader}>
+								Due Date
+							</th>
 						</tr>
 					</thead>
 
