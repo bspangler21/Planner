@@ -126,7 +126,9 @@ export default class TaskList extends React.Component<
 								bucketId: task.bucketId,
 							});
 						});
-						this.setState({ assignedTasks: responseTasks });
+						this.setState({
+							assignedTasks: responseTasks,
+						});
 					});
 			});
 
