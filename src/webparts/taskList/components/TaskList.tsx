@@ -22,6 +22,8 @@ const options: IComboBoxOption[] = [
 	{ key: "3", text: "Option 3" },
 ];
 
+const defaultKey: string = buckets[4].key.toString();
+
 const classNames = mergeStyleSets({
 	largeHeader: {
 		width: "500px",
@@ -70,7 +72,7 @@ export default class TaskList extends React.Component<
 					<ComboBox
 						label="Filter by Bucket:"
 						options={buckets}
-						// defaultSelectedKey={"zzz"}
+						defaultSelectedKey={defaultKey}
 						multiSelect
 						onItemClick={this._filterByBucket}
 						className={classNames.comboBox}
@@ -145,6 +147,9 @@ export default class TaskList extends React.Component<
 							});
 						this.setState({
 							assignedTasks: responseTasks,
+							displayedTasks: responseTasks.filter(
+								(task) => task.bucketId === defaultKey
+							),
 						});
 					});
 			});
