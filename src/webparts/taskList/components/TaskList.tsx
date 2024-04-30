@@ -72,7 +72,7 @@ export default class TaskList extends React.Component<
 					<ComboBox
 						label="Filter by Bucket:"
 						options={buckets}
-						defaultSelectedKey={defaultKey}
+						// defaultSelectedKey={defaultKey}
 						multiSelect
 						onItemClick={this._filterByBucket}
 						className={classNames.comboBox}
@@ -213,7 +213,9 @@ export default class TaskList extends React.Component<
 		// }
 		console.log("current option:", option);
 		if (option) {
+			console.log("option.selected before", option.selected);
 			option.selected = !option.selected;
+			console.log("option selected after", option.selected);
 		}
 		if (option && option.selected) {
 			currentOptions.push(option);
@@ -241,19 +243,18 @@ export default class TaskList extends React.Component<
 		// 		currentOptions.push(option);
 		// 	}
 		// }
-
-		currentOptions.forEach((option: IComboBoxOption) => {
-			allTasks.forEach((task: Task) => {
-				if (task.bucketId === option?.key.toString()) {
-					filteredTasks.push(task);
-				}
+		if (currentOptions.length > 0) {
+			currentOptions.forEach((option: IComboBoxOption) => {
+				allTasks.forEach((task: Task) => {
+					if (task.bucketId === option?.key.toString()) {
+						filteredTasks.push(task);
+					}
+				});
 			});
-		});
+		} else {
+			filteredTasks = allTasks;
+		}
 		this.setState({ displayedTasks: filteredTasks });
 		console.log("current options:", currentOptions);
-		// currentOptions = if(currentOptions) {
-		// 	currentOptions
-		// }
-		// this.setState({ selectedOptions: currentOptions});
 	};
 }
