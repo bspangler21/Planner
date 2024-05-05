@@ -33,3 +33,4 @@ obj
 # Styles Generated Code
 *.scss.ts
 /src/PlanId.ts
+/src/Hidden.ts
