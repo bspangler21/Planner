@@ -85,6 +85,9 @@ export default class TaskList extends React.Component<
 							<th className={classNames.regularHeader}>
 								Due Date
 							</th>
+							<th className={classNames.largeHeader}>
+								Team Members
+							</th>
 						</tr>
 					</thead>
 
@@ -101,6 +104,12 @@ export default class TaskList extends React.Component<
 									<td>{task.title}</td>
 
 									<td>{task.dueDateTime}</td>
+									<td>
+										{task.assignedTo &&
+											this._getAssignedTo(
+												task.assignedTo
+											)}
+									</td>
 								</tr>
 							))}
 					</tbody>
@@ -163,35 +172,11 @@ export default class TaskList extends React.Component<
 		index?: number | undefined
 	): void => {
 		const allTasks: Task[] = this.state.assignedTasks;
-		let filteredTasks: Task[] = [];
 		const currentOptions = [...this.state.selectedOptions, option];
-		currentOptions.forEach((option: IComboBoxOption) => {
-			switch (option?.key) {
-				case "1":
-					allTasks.forEach((task: Task) => {
-						if (
-							task.assignedTo &&
-							task.assignedTo.indexOf(option?.key.toString()) > -1
-						) {
-							filteredTasks.push(task);
-						}
-					});
-					break;
-				case "2":
-					allTasks.forEach((task: Task) => {
-						if (
-							task.assignedTo &&
-							task.assignedTo.indexOf(option?.key.toString()) > -1
-						) {
-							filteredTasks.push(task);
-						}
-					});
-					break;
-				default:
-					console.log("No option selected");
-					filteredTasks = allTasks;
-					break;
-			}
+		const filteredTasks: Task[] = allTasks.filter((task: Task) => {
+			return task.assignedTo?.some((assignedToKey) => {
+				return option?.key === assignedToKey;
+			});
 		});
 
 		this.setState({ displayedTasks: filteredTasks });
@@ -203,14 +188,10 @@ export default class TaskList extends React.Component<
 		index?: number | undefined
 	): void => {
 		const allTasks: Task[] = this.state.assignedTasks;
-		let filteredTasks: Task[] = [];
+
 		let currentOptions = [];
 		currentOptions = [...this.state.selectedOptions, option];
-		// if (option) {
-		// 	currentOptions = [...this.state.selectedOptions, option];
-		// } else {
-		// 	currentOptions = [...this.state.selectedOptions];
-		// }
+
 		console.log("current option:", option);
 		if (option) {
 			console.log("option.selected before", option.selected);
@@ -224,9 +205,12 @@ export default class TaskList extends React.Component<
 				(opt) => opt?.key !== option?.key
 			);
 		}
-		console.log("option selected?", option?.selected);
-		console.log("current options:", this.state.selectedOptions);
-		console.log("currentOptions.length:", currentOptions.length);
+
+		const filteredTasks: Task[] = allTasks.filter((task: Task) => {
+			return option?.key && task.bucketId === option?.key.toString();
+		});
+
+		this.setState({ displayedTasks: filteredTasks });
 		// if (option) {
 		// 	const optionIndex = currentOptions./*indexOf(option)*/
 		// 	findIndex(
@@ -243,18 +227,41 @@ export default class TaskList extends React.Component<
 		// 		currentOptions.push(option);
 		// 	}
 		// }
-		if (currentOptions.length > 0) {
-			currentOptions.forEach((option: IComboBoxOption) => {
-				allTasks.forEach((task: Task) => {
-					if (task.bucketId === option?.key.toString()) {
-						filteredTasks.push(task);
-					}
-				});
-			});
-		} else {
-			filteredTasks = allTasks;
-		}
-		this.setState({ displayedTasks: filteredTasks });
+		// if (currentOptions.length > 0) {
+		// 	currentOptions.forEach((option: IComboBoxOption) => {
+		// 		allTasks.forEach((task: Task) => {
+		// 			if (task.bucketId === option?.key.toString()) {
+		// 				filteredTasks.push(task);
+		// 			}
+		// 		});
+		// 	});
+		// } else {
+		// 	filteredTasks = allTasks;
+		// }
+		// this.setState({ displayedTasks: filteredTasks });
 		console.log("current options:", currentOptions);
+	};
+
+	private _getAssignedTo = (assignedToKeys: string[]): string => {
+		let assignedTo: string = "";
+
+		// assignedToKeys.forEach((assignee: string) => {
+		// 	assignedTo += assignee + ", ";
+		// });
+		assignedToKeys.forEach((assignee: string) => {
+			const matchingOption = options.find(
+				(option) => option.key === assignee
+			);
+			if (matchingOption) {
+				assignedTo += matchingOption.text + ", ";
+			}
+		});
+
+		// Remove trailing comma and space
+		if (assignedTo.endsWith(", ")) {
+			assignedTo = assignedTo.slice(0, -2);
+		}
+
+		return assignedTo;
 	};
 }
