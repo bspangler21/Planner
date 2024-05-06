@@ -8,19 +8,16 @@ import { escape } from "@microsoft/sp-lodash-subset";
 import { MSGraphClientV3 } from "@microsoft/sp-http";
 import {
 	ComboBox,
+	DefaultButton,
+	DetailsList,
+	IColumn,
 	IComboBox,
 	IComboBoxOption,
 	mergeStyleSets,
 } from "@fluentui/react";
 import { Task } from "../types/Task";
-import { buckets, planId } from "../../../Hidden";
+import { buckets, planId, options } from "../../../Hidden";
 import { getTaskDetails } from "../services/TaskDetailService";
-
-const options: IComboBoxOption[] = [
-	{ key: "1", text: "Option 1" },
-	{ key: "2", text: "Option 2" },
-	{ key: "3", text: "Option 3" },
-];
 
 const defaultKey: string = buckets[4].key.toString();
 
@@ -39,7 +36,40 @@ const classNames = mergeStyleSets({
 		width: "300px",
 		padding: "10px",
 	},
+	filters: {
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+		// justifyContent: "space-between",
+	},
 });
+
+const taskColumns: IColumn[] = [
+	{
+		key: "title",
+		name: "Title",
+		fieldName: "title",
+		minWidth: 100,
+		maxWidth: 500,
+		isResizable: true,
+	},
+	{
+		key: "dueDateTime",
+		name: "Due Date",
+		fieldName: "dueDateTime",
+		minWidth: 100,
+		maxWidth: 100,
+		isResizable: true,
+	},
+	{
+		key: "assignedTo",
+		name: "Assigned To",
+		fieldName: "assignedTo",
+		minWidth: 100,
+		maxWidth: 500,
+		isResizable: true,
+	},
+];
 
 export default class TaskList extends React.Component<
 	TaskListProps,
@@ -68,52 +98,37 @@ export default class TaskList extends React.Component<
 					hasTeamsContext ? styles.teams : ""
 				}`}
 			>
-				<div>
+				<div className={classNames.filters}>
 					<ComboBox
 						label="Filter by Bucket:"
 						options={buckets}
 						// defaultSelectedKey={defaultKey}
-						multiSelect
+						// multiSelect
 						onItemClick={this._filterByBucket}
 						className={classNames.comboBox}
 					/>
+					<ComboBox
+						label="Filter by Assigned To:"
+						options={options}
+						// defaultSelectedKey={defaultKey}
+						// multiSelect
+						onItemClick={this._filterByAssignedTo}
+						className={classNames.comboBox}
+					/>
+					<DefaultButton
+						onClick={() => {
+							this.setState({
+								displayedTasks: this.state.assignedTasks,
+							});
+						}}
+					>
+						Reset All Filters
+					</DefaultButton>
 				</div>
-				<table>
-					<thead>
-						<tr>
-							<th className={classNames.largeHeader}>Title</th>
-							<th className={classNames.regularHeader}>
-								Due Date
-							</th>
-							<th className={classNames.largeHeader}>
-								Team Members
-							</th>
-						</tr>
-					</thead>
-
-					<tbody>
-						{this.state.displayedTasks &&
-							this.state.displayedTasks.map((task: Task) => (
-								<tr
-									key={task.id}
-									// onClick={getTaskDetails(
-									// 	task.id,
-									// 	this.props.context
-									// )}
-								>
-									<td>{task.title}</td>
-
-									<td>{task.dueDateTime}</td>
-									<td>
-										{task.assignedTo &&
-											this._getAssignedTo(
-												task.assignedTo
-											)}
-									</td>
-								</tr>
-							))}
-					</tbody>
-				</table>
+				<DetailsList
+					items={this.state.displayedTasks}
+					columns={taskColumns}
+				/>
 			</section>
 		);
 	}
@@ -137,10 +152,26 @@ export default class TaskList extends React.Component<
 							// 		t.bucketId ===
 							// 			"97XSMButykCukouGUKdiXGQAJxiS"
 							// )
+							.filter((t: Task) => t.percentComplete !== 100)
 							.map((task: any) => {
 								const assignedToKeys = Object.keys(
 									task.assignments
 								);
+								let assignedTo = "";
+								assignedToKeys.forEach((assignee: string) => {
+									const matchingOption = options.find(
+										(option) => option.key === assignee
+									);
+									if (matchingOption) {
+										assignedTo +=
+											matchingOption.text + ", ";
+									}
+								});
+
+								// Remove trailing comma and space
+								if (assignedTo.endsWith(", ")) {
+									assignedTo = assignedTo.slice(0, -2);
+								}
 								const dueDateTime = task.dueDateTime
 									? new Date(
 											task.dueDateTime
@@ -149,16 +180,33 @@ export default class TaskList extends React.Component<
 								responseTasks.push({
 									id: task.id,
 									title: task.title,
-									assignedTo: assignedToKeys,
+									assignedTo: assignedTo,
 									dueDateTime: dueDateTime,
 									bucketId: task.bucketId,
+									percentComplete: task.percentComplete,
 								});
 							});
 						this.setState({
-							assignedTasks: responseTasks,
-							displayedTasks: responseTasks.filter(
-								(task) => task.bucketId === defaultKey
-							),
+							assignedTasks: responseTasks /*.filter((task) => {
+								return task.assignedTo?.some(
+									(assignedToKey) => {
+										return options.some(
+											(option) =>
+												option.key === assignedToKey
+										);
+									}
+								);
+							})*/,
+							displayedTasks: responseTasks /*.filter((task) => {
+								return task.assignedTo?.some(
+									(assignedToKey) => {
+										return options.some(
+											(option) =>
+												option.key === assignedToKey
+										);
+									}
+								);
+							})*/,
 						});
 					});
 			});
@@ -166,7 +214,7 @@ export default class TaskList extends React.Component<
 		console.log("assignedTasks", this.state.assignedTasks);
 	}
 
-	private _filterTasks = (
+	private _filterByAssignedTo = (
 		event: React.FormEvent<IComboBox>,
 		option?: IComboBoxOption | undefined,
 		index?: number | undefined
@@ -174,10 +222,13 @@ export default class TaskList extends React.Component<
 		const allTasks: Task[] = this.state.assignedTasks;
 		const currentOptions = [...this.state.selectedOptions, option];
 		const filteredTasks: Task[] = allTasks.filter((task: Task) => {
-			return task.assignedTo?.some((assignedToKey) => {
-				return option?.key === assignedToKey;
-			});
+			return option?.key && task.assignedTo === option?.text;
 		});
+		// const filteredTasks: Task[] = allTasks.filter((task: Task) => {
+		// 	return task.assignedTo?.some((assignedToKey) => {
+		// 		return option?.key === assignedToKey;
+		// 	});
+		// });
 
 		this.setState({ displayedTasks: filteredTasks });
 	};
@@ -187,24 +238,24 @@ export default class TaskList extends React.Component<
 		option?: IComboBoxOption | undefined,
 		index?: number | undefined
 	): void => {
-		const allTasks: Task[] = this.state.assignedTasks;
+		const allTasks: Task[] = this.state.displayedTasks;
 
 		let currentOptions = [];
 		currentOptions = [...this.state.selectedOptions, option];
 
 		console.log("current option:", option);
-		if (option) {
-			console.log("option.selected before", option.selected);
-			option.selected = !option.selected;
-			console.log("option selected after", option.selected);
-		}
-		if (option && option.selected) {
-			currentOptions.push(option);
-		} else {
-			currentOptions = currentOptions.filter(
-				(opt) => opt?.key !== option?.key
-			);
-		}
+		// if (option) {
+		// 	console.log("option.selected before", option.selected);
+		// 	option.selected = !option.selected;
+		// 	console.log("option selected after", option.selected);
+		// }
+		// if (option && option.selected) {
+		// 	currentOptions.push(option);
+		// } else {
+		// 	currentOptions = currentOptions.filter(
+		// 		(opt) => opt?.key !== option?.key
+		// 	);
+		// }
 
 		const filteredTasks: Task[] = allTasks.filter((task: Task) => {
 			return option?.key && task.bucketId === option?.key.toString();

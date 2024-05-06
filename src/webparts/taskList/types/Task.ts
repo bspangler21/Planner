@@ -1,8 +1,9 @@
 export type Task = {
 	id: string;
 	title: string;
-	assignedTo?: string[];
+	assignedTo?: string;
 	dueDateTime?: string;
 	description?: string;
 	bucketId: string;
+	percentComplete?: number;
 };
